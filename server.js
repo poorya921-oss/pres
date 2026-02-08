@@ -64,6 +64,11 @@ io.on('connection', (socket) => {
       if (data.newAdmin) ADMIN_PASSWORD = data.newAdmin;
       if (data.newPublic) PUBLIC_PASSWORD = data.newPublic;
     }
+
+    if (data.type === 'changeChatColor') {
+  io.emit('changeChatColor', data.color); // به همه کلاینت‌ها میفرستیم
+}
+
   });
 
   socket.on('disconnect', () => {

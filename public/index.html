@@ -50,6 +50,11 @@
 <button onclick="changeBg('white')">White</button>
 <button onclick="changeBg('lightblue')">Blue</button>
 <button onclick="changeBg('lightgreen')">Green</button>
+
+<h4>Change Chat Background</h4>
+<button onclick="changeChatColor('lightgreen')">Green</button>
+<button onclick="changeChatColor('lightblue')">Blue</button>
+
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -76,6 +81,11 @@
     div.innerText = data.user + ': ' + data.msg;
     document.getElementById('messages').appendChild(div);
   });
+
+socket.on('changeChatColor', (color) => {
+  document.getElementById('chat').style.backgroundColor = color;
+});
+
 
   function send() {
     socket.emit('chat', document.getElementById('msg').value);
@@ -113,6 +123,10 @@ function changePasswords() {
 function changeBg(color) {
   const panel = document.getElementById('adminPanel');
   panel.style.backgroundColor = color;
+}
+
+function changeChatColor(color) {
+  socket.emit('adminAction', { type: 'changeChatColor', color });
 }
 
 </script>
