@@ -45,6 +45,11 @@
   <input id="newAdminPass" placeholder="New Admin Password"/>
   <input id="newPublicPass" placeholder="New Public Password"/>
   <button onclick="changePasswords()">Change Passwords</button>
+
+  <h4>Change Background Color</h4>
+<button onclick="changeBg('white')">White</button>
+<button onclick="changeBg('lightblue')">Blue</button>
+<button onclick="changeBg('lightgreen')">Green</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -103,6 +108,11 @@ function changePasswords() {
   const newAdmin = document.getElementById('newAdminPass').value;
   const newPublic = document.getElementById('newPublicPass').value;
   socket.emit('adminAction', { type:'changePasswords', newAdmin, newPublic });
+}
+
+function changeBg(color) {
+  const panel = document.getElementById('adminPanel');
+  panel.style.backgroundColor = color;
 }
 
 </script>
