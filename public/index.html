@@ -1,0 +1,110 @@
+// public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>pres</title>
+  <style>
+    body { margin:0; font-family: sans-serif; display:flex; height:100vh; }
+    #users { width:25%; border-right:1px solid #ddd; padding:10px; }
+    #chat { flex:1; display:flex; flex-direction:column; }
+    #header { display:flex; justify-content:space-between; align-items:center; }
+    #messages { flex:1; overflow:auto; }
+    #input { display:flex; }
+    #adminBtn { background:red; color:white; display:none; }
+  </style>
+</head>
+<body>
+  <div id="users">
+    <h3>Online</h3>
+    <ul id="userList"></ul>
+  </div>
+  <div id="chat">
+    <div id="header">
+      <h2>pres</h2>
+      <button id="adminBtn">Admin</button>
+    </div>
+    <div id="messages"></div>
+    <div id="input">
+      <input id="msg" placeholder="message" />
+      <button onclick="send()">Send</button>
+    </div>
+  </div>
+<div id="adminPanel" style="display:none; position:absolute; top:50px; right:20px; background:#f5f5f5; border:1px solid #ccc; padding:10px;">
+  <h3>Admin Panel</h3>
+  <input id="kickUser" placeholder="Username to kick" />
+  <button onclick="kick()">Kick</button><br/>
+  
+  <input id="muteUser" placeholder="Username to mute" />
+  <input id="muteMinutes" placeholder="Minutes" type="number"/>
+  <button onclick="mute()">Mute</button><br/>
+  
+  <input id="broadcastMsg" placeholder="Broadcast message"/>
+  <button onclick="broadcast()">Send</button><br/>
+  
+  <input id="newAdminPass" placeholder="New Admin Password"/>
+  <input id="newPublicPass" placeholder="New Public Password"/>
+  <button onclick="changePasswords()">Change Passwords</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+  const socket = io();
+  const username = prompt('username');
+  const password = prompt('password');
+
+  socket.emit('login', { username, password });
+
+  socket.on('loginSuccess', (data) => {
+    if (data.role === 'admin') document.getElementById('adminBtn').style.display='block';
+  });
+
+  socket.on('loginError', () => alert('login failed'));
+
+  socket.on('users', users => {
+    document.getElementById('userList').innerHTML = users.map(u=>`<li>${u}</li>`).join('');
+  });
+
+  socket.on('chat', data => {
+    const div = document.createElement('div');
+    div.innerText = data.user + ': ' + data.msg;
+    document.getElementById('messages').appendChild(div);
+  });
+
+  function send() {
+    socket.emit('chat', document.getElementById('msg').value);
+    document.getElementById('msg').value='';
+  }
+// فعال کردن پنل ادمین با کلیک روی دکمه
+document.getElementById('adminBtn').onclick = () => {
+  const panel = document.getElementById('adminPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+// توابع ادمین
+function kick() {
+  const user = document.getElementById('kickUser').value;
+  socket.emit('adminAction', { type:'kick', user });
+}
+
+function mute() {
+  const user = document.getElementById('muteUser').value;
+  const minutes = parseInt(document.getElementById('muteMinutes').value) || 1;
+  socket.emit('adminAction', { type:'mute', user, minutes });
+}
+
+function broadcast() {
+  const msg = document.getElementById('broadcastMsg').value;
+  socket.emit('adminAction', { type:'broadcast', msg });
+}
+
+function changePasswords() {
+  const newAdmin = document.getElementById('newAdminPass').value;
+  const newPublic = document.getElementById('newPublicPass').value;
+  socket.emit('adminAction', { type:'changePasswords', newAdmin, newPublic });
+}
+
+</script>
+</body>
+</html>
