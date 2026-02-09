@@ -38,24 +38,33 @@ io.on('connection', (socket) => {
   socket.emit('changePanelBg', settings.adminPanelBg);
 
   socket.on('login', ({ username, password }) => {
-    if (username === settings.ADMIN_USERNAME && password === settings.ADMIN_PASSWORD) {
-      socket.username = username;
-      socket.isAdmin = true;
-      onlineUsers[username] = socket.id;
-      io.emit('users', Object.keys(onlineUsers));
-      socket.emit('loginSuccess', { role: 'admin' });
-    } else if (password === settings.PUBLIC_PASSWORD) {
-      socket.username = username;
-      socket.isAdmin = false;
-      onlineUsers[username] = socket.id;
-      io.emit('users', Object.keys(onlineUsers));
-      socket.emit('loginSuccess', { role: 'user' });
-    } else {
-      socket.emit('loginError');
-    }
+  let role = null;
+  
+  if (username === settings.ADMIN_USERNAME && password === settings.ADMIN_PASSWORD) {
+    socket.username = username;
+    socket.isAdmin = true;
+    role = 'admin';
+  } else if (password === settings.PUBLIC_PASSWORD) {
+    socket.username = username;
+    socket.isAdmin = false;
+    role = 'user';
+  } else {
+    socket.emit('loginError');
+    return;
+  }
 
+  // ذخیره کاربر و IP
+  onlineUsers[socket.username] = {
+    id: socket.id,
+    ip: socket.handshake.address // اینجا IP رو میگیریم
+  };
 
-  });
+  // ارسال لیست کاربران به همه
+  io.emit('users', Object.keys(onlineUsers));
+
+  socket.emit('loginSuccess', { role });
+});
+
 
 // ارسال تاریخچه پیام‌ها به کاربر تازه
 chatHistory.forEach(message => {
@@ -131,6 +140,20 @@ chatHistory.forEach(message => {
       io.emit('changePanelBg', data.color);
       try { fs.writeFileSync('./settings.json', JSON.stringify(settings, null, 2)); } catch {}
     }
+
+if (data.type === 'getIPs') {
+  if (!socket.isAdmin) return;
+  
+  // آماده کردن لیست کاربرا و IP ها
+  const ips = Object.keys(onlineUsers).map(u => ({
+    username: u,
+    ip: onlineUsers[u].ip
+  }));
+
+  // فقط برای ادمین خودش ارسال میشه
+  socket.emit('userIPs', ips);
+}
+
 
   });
 

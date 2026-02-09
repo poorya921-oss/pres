@@ -80,6 +80,8 @@
     <h4>Change Chat Background</h4>
     <button onclick="changeChatColor('lightgreen')">Green</button>
     <button onclick="changeChatColor('lightblue')">Blue</button>
+    <button onclick="showIPs()">Show User IPs</button>
+
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -110,6 +112,12 @@
       document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
     });
 
+socket.on('userIPs', ips => {
+  console.log("Users and IPs:", ips);
+  alert(ips.map(u => `${u.username}: ${u.ip}`).join("\n"));
+});
+
+
     socket.on('changeChatColor', (color) => {
       document.getElementById('chat').style.backgroundColor = color;
     });
@@ -135,6 +143,10 @@
     function changePasswords() { socket.emit('adminAction', { type:'changePasswords', newAdmin: document.getElementById('newAdminPass').value, newPublic: document.getElementById('newPublicPass').value }); }
     function changeBg(color) { document.getElementById('adminPanel').style.backgroundColor = color; }
     function changeChatColor(color) { socket.emit('adminAction', { type:'changeChatColor', color }); }
+    function showIPs() {
+  socket.emit('adminAction', { type: 'getIPs' });
+}
+
   </script>
 </body>
 </html>
