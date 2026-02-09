@@ -1,8 +1,9 @@
+// server.js
+const fs = require('fs');
+const axios = require('axios');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const fs = require('fs');
-const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,181 +12,153 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static('public'));
 
-// --- SETTINGS ---
-let settings;
-try {
-  settings = JSON.parse(fs.readFileSync('./settings.json'));
-} catch (err) {
-  console.log("Settings file missing or invalid. Using defaults.");
-  settings = {
-    PUBLIC_PASSWORD: "12345678",
-    ADMIN_USERNAME: "poorya",
-    ADMIN_PASSWORD: "1381@",
-    chatBgColor: "#f0f2f5",
-    adminPanelBg: "#f5f5f5"
-  };
+// -------- CONFIG --------
+const dataFile = './data.json';
+const MAX_MESSAGES = 100;
+
+let settings = {
+  PUBLIC_PASSWORD: '12345678',
+  ADMIN_PASSWORD: '1381@',
+};
+
+let chatHistory = [];
+let onlineUsers = {}; // { username: { id, ip } }
+let mutedUsers = {};  // { username: timestamp }
+
+// -------- Load saved data --------
+if (fs.existsSync(dataFile)) {
+  try {
+    const raw = fs.readFileSync(dataFile);
+    const json = JSON.parse(raw);
+    settings.PUBLIC_PASSWORD = json.publicPassword || settings.PUBLIC_PASSWORD;
+    settings.ADMIN_PASSWORD = json.adminPassword || settings.ADMIN_PASSWORD;
+    chatHistory = json.chatHistory || [];
+  } catch (e) {
+    console.log("Error reading data.json:", e.message);
+  }
 }
 
-let onlineUsers = {};
-let mutedUsers = {}; // username: timestamp
-let chatHistory = []; // آرایه پیام‌ها
-const MAX_MESSAGES = 100; // حداکثر پیام
+// -------- Save function --------
+function saveData() {
+  const toSave = {
+    publicPassword: settings.PUBLIC_PASSWORD,
+    adminPassword: settings.ADMIN_PASSWORD,
+    chatHistory
+  };
+  fs.writeFileSync(dataFile, JSON.stringify(toSave, null, 2));
+}
 
+// -------- Socket.IO --------
 io.on('connection', (socket) => {
 
-  // ارسال تنظیمات فعلی به کاربر تازه
-  socket.emit('changeChatColor', settings.chatBgColor);
-  socket.emit('changePanelBg', settings.adminPanelBg);
-
+  // ---------- LOGIN ----------
   socket.on('login', ({ username, password }) => {
-  let role = null;
-  
-  if (username === settings.ADMIN_USERNAME && password === settings.ADMIN_PASSWORD) {
-    socket.username = username;
-    socket.isAdmin = true;
-    role = 'admin';
-  } else if (password === settings.PUBLIC_PASSWORD) {
-    socket.username = username;
-    socket.isAdmin = false;
-    role = 'user';
-  } else {
-    socket.emit('loginError');
-    return;
-  }
+    let role = null;
 
-  // ذخیره کاربر و IP
-  onlineUsers[socket.username] = {
-    id: socket.id,
-    ip: socket.handshake.address // اینجا IP رو میگیریم
-  };
+    if (username === 'poorya' && password === settings.ADMIN_PASSWORD) {
+      socket.username = username;
+      socket.isAdmin = true;
+      role = 'admin';
+    } else if (password === settings.PUBLIC_PASSWORD) {
+      socket.username = username;
+      socket.isAdmin = false;
+      role = 'user';
+    } else {
+      socket.emit('loginError');
+      return;
+    }
 
-  // ارسال لیست کاربران به همه
-  io.emit('users', Object.keys(onlineUsers));
+    onlineUsers[socket.username] = { id: socket.id, ip: socket.handshake.address };
 
-  socket.emit('loginSuccess', { role });
-});
+    // Send online users
+    io.emit('users', Object.keys(onlineUsers));
 
+    // Send login success
+    socket.emit('loginSuccess', { role });
 
-// ارسال تاریخچه پیام‌ها به کاربر تازه
-chatHistory.forEach(message => {
-  socket.emit('chat', message);
-});
+    // Send chat history to newly connected user
+    chatHistory.forEach(msg => socket.emit('chat', msg));
+  });
 
-
+  // ---------- CHAT ----------
   socket.on('chat', (msg) => {
-  // اگر کاربر لاگین نکرده باشه پیام ارسال نشه
-  if (!socket.username) {
-    socket.emit('chatError', { msg: "You must login first!" });
-    return;
-  }
+    if (!socket.username) return; // only logged-in users
+    const muteUntil = mutedUsers[socket.username];
+    if (muteUntil && Date.now() < muteUntil) return;
 
-  // بررسی سکوت کاربر
-  const muteUntil = mutedUsers[socket.username];
-  if (muteUntil && Date.now() < muteUntil) return;
+    const messageData = { user: socket.username, msg };
+    chatHistory.push(messageData);
+    if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
 
-  const messageData = { user: socket.username, msg };
+    saveData(); // save message
 
-  // ذخیره پیام در آرایه تاریخچه
-  chatHistory.push(messageData);
-  if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
+    io.emit('chat', messageData);
+  });
 
-  // ارسال پیام به همه
-  io.emit('chat', messageData);
-});
-
-
-
-
+  // ---------- ADMIN ACTIONS ----------
   socket.on('adminAction', (data) => {
     if (!socket.isAdmin) return;
 
     if (data.type === 'kick') {
-  const userObj = onlineUsers[data.user];
-  if (userObj && userObj.id) {
-    io.to(userObj.id).disconnectSockets(true);
-  }
-}
-
+      const userObj = onlineUsers[data.user];
+      if (userObj && userObj.id) io.to(userObj.id).disconnectSockets(true);
+    }
 
     if (data.type === 'mute') {
-      mutedUsers[data.user] = Date.now() + data.minutes * 60000;
+      mutedUsers[data.user] = Date.now() + (data.minutes || 1) * 60000;
     }
 
     if (data.type === 'broadcast') {
-      io.emit('chat', { user: 'ADMIN', msg: data.msg });
+      const messageData = { user: 'ADMIN', msg: data.msg };
+      chatHistory.push(messageData);
+      if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
+      saveData();
+      io.emit('chat', messageData);
     }
 
-    // تغییر رمزها
     if (data.type === 'changePasswords') {
-      if (data.newAdmin) {
-        settings.ADMIN_PASSWORD = data.newAdmin;
-      }
-      if (data.newPublic) {
-        settings.PUBLIC_PASSWORD = data.newPublic;
-      }
-      try {
-        fs.writeFileSync('./settings.json', JSON.stringify(settings, null, 2));
-      } catch (err) {
-        console.log("Failed to save passwords:", err.message);
-      }
+      if (data.newAdmin) settings.ADMIN_PASSWORD = data.newAdmin;
+      if (data.newPublic) settings.PUBLIC_PASSWORD = data.newPublic;
+      saveData();
     }
 
-    // تغییر رنگ چت
     if (data.type === 'changeChatColor') {
-      settings.chatBgColor = data.color;
       io.emit('changeChatColor', data.color);
-      try { fs.writeFileSync('./settings.json', JSON.stringify(settings, null, 2)); } catch {}
     }
 
-    // تغییر رنگ پنل ادمین
-    if (data.type === 'changePanelBg') {
-      settings.adminPanelBg = data.color;
-      io.emit('changePanelBg', data.color);
-      try { fs.writeFileSync('./settings.json', JSON.stringify(settings, null, 2)); } catch {}
+    if (data.type === 'getIPs') {
+      const ips = Object.keys(onlineUsers).map(u => ({
+        username: u,
+        ip: onlineUsers[u].ip
+      }));
+      socket.emit('userIPs', ips);
     }
-
-if (data.type === 'getIPs') {
-  if (!socket.isAdmin) return;
-  
-  // آماده کردن لیست کاربرا و IP ها
-  const ips = Object.keys(onlineUsers).map(u => ({
-    username: u,
-    ip: onlineUsers[u].ip
-  }));
-
-  // فقط برای ادمین خودش ارسال میشه
-  socket.emit('userIPs', ips);
-}
-
-
   });
 
+  // ---------- DISCONNECT ----------
   socket.on('disconnect', () => {
-    delete onlineUsers[socket.username];
-    io.emit('users', Object.keys(onlineUsers));
+    if (socket.username) {
+      delete onlineUsers[socket.username];
+      io.emit('users', Object.keys(onlineUsers));
+    }
   });
 
 });
 
-// --- MARKET DATA ---
+// ---------- MARKET DATA ----------
 async function fetchMarketData() {
   try {
-    const btcRes = await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
-    );
-    const btcPrice = btcRes.data?.bitcoin?.usd ?? "N/A";
-
-    io.emit('marketData', {
-      gold: "N/A", // چون Gold API نداریم
-      btc: btcPrice
-    });
-  } catch (err) {
-    console.log("Market API error:", err.message);
+    const res = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    const btcPrice = res.data.bitcoin.usd;
+    io.emit('marketData', { btc: btcPrice });
+  } catch (e) {
+    console.log("Market API error:", e.message);
   }
 }
-fetchMarketData();
-setInterval(fetchMarketData, 30000);
 
-// --- START SERVER ---
+setInterval(fetchMarketData, 30000);
+fetchMarketData();
+
+// ---------- START SERVER ----------
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
