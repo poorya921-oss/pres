@@ -83,27 +83,11 @@ server.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)
 );
 
-async function fetchMarketData() {
-  try {
-    const goldRes = await axios.get(
-      'https://api.metals.live/v1/spot/gold'
-    );
-
-    const btcRes = await axios.get(
-      'https://api.coindesk.com/v1/bpi/currentprice/BTC.json'
-    );
-
-    const goldPrice = goldRes.data?.[0]?.price || "N/A";
-    const btcPrice = btcRes.data?.bpi?.USD?.rate || "N/A";
-
-    io.emit('marketData', {
-      gold: goldPrice,
-      btc: btcPrice
-    });
-
-  } catch (error) {
-    console.log("Market API error:", error.message);
-  }
+function fetchMarketData() {
+  io.emit('marketData', {
+    gold: 2000,
+    btc: 60000
+  });
 }
 
 // هر 30 ثانیه
