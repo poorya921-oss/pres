@@ -78,10 +78,38 @@ io.on('connection', (socket) => {
   });
 });
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 
-// هر 30 ثانیه قیمت آپدیت شود
+server.listen(PORT, () =>
+  console.log(`Server running on port ${PORT}`)
+);
+
+async function fetchMarketData() {
+  try {
+    const goldRes = await axios.get(
+      'https://api.metals.live/v1/spot/gold'
+    );
+
+    const btcRes = await axios.get(
+      'https://api.coindesk.com/v1/bpi/currentprice/BTC.json'
+    );
+
+    const goldPrice = goldRes.data?.[0]?.price || "N/A";
+    const btcPrice = btcRes.data?.bpi?.USD?.rate || "N/A";
+
+    io.emit('marketData', {
+      gold: goldPrice,
+      btc: btcPrice
+    });
+
+  } catch (error) {
+    console.log("Market API error:", error.message);
+  }
+}
+
+// هر 30 ثانیه
 setInterval(fetchMarketData, 30000);
+fetchMarketData();
+
 
 // بار اول هم اجرا شود
 fetchMarketData();
