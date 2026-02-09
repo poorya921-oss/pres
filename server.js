@@ -96,8 +96,10 @@ async function fetchMarketData() {
     let goldPrice = "N/A";
     try {
       const goldRes = await axios.get(
-        'https://metals-api.com/api/latest?access_key=demo&base=USD&symbols=XAU'
-      );
+  'https://api.coingecko.com/api/v3/simple/price?ids=gold&vs_currencies=usd'
+);
+const goldPrice = goldRes.data?.gold?.usd ?? "N/A";
+
       // نرخ XAU بر حسب دلار
       if (goldRes.data && goldRes.data.rates && goldRes.data.rates.XAU) {
         goldPrice = (1 / goldRes.data.rates.XAU).toFixed(2);
