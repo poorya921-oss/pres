@@ -85,20 +85,19 @@
 </head>
 <body>
 
+  <div id="header">
+  <div id="logo">
+    <span class="icon">💬</span> pres
+  </div>
+
   <div id="marketBox">
-  Gold: <span id="goldPrice">--</span> |
-  BTC: <span id="btcPrice">--</span>
+    Gold: <span id="goldPrice">--</span> |
+    BTC: <span id="btcPrice">--</span>
+  </div>
+
+  <button id="adminBtn">Admin</button>
 </div>
 
-  <div id="users">
-    <h3>Online</h3>
-    <ul id="userList"></ul>
-  </div>
-  <div id="chat">
-    <div id="header">
-      <div id="logo">
-  <span class="icon">💬</span> pres
-</div>
 
       <button id="adminBtn">Admin</button>
     </div>
@@ -136,6 +135,7 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+
 <script>
 
   const socket = io();
@@ -223,6 +223,12 @@ function changeBg(color) {
 function changeChatColor(color) {
   socket.emit('adminAction', { type: 'changeChatColor', color });
 }
+
+socket.on('marketData', data => {
+  document.getElementById('goldPrice').innerText = data.gold;
+  document.getElementById('btcPrice').innerText = data.btc;
+});
+
 
 </script>
 </body>
