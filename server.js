@@ -28,6 +28,8 @@ try {
 
 let onlineUsers = {};
 let mutedUsers = {}; // username: timestamp
+let chatHistory = []; // آرایه پیام‌ها
+const MAX_MESSAGES = 100; // حداکثر پیام
 
 io.on('connection', (socket) => {
 
@@ -51,13 +53,35 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('loginError');
     }
+
+
   });
 
+// ارسال تاریخچه پیام‌ها به کاربر تازه
+chatHistory.forEach(message => {
+  socket.emit('chat', message);
+});
+
+
   socket.on('chat', (msg) => {
-    const muteUntil = mutedUsers[socket.username];
-    if (muteUntil && Date.now() < muteUntil) return;
-    io.emit('chat', { user: socket.username, msg });
-  });
+  const muteUntil = mutedUsers[socket.username];
+  if (muteUntil && Date.now() < muteUntil) return;
+
+  const messageData = { user: socket.username, msg };
+  
+  // اضافه کردن پیام به تاریخچه
+  chatHistory.push(messageData);
+
+  // اگر تعداد پیام‌ها بیشتر از MAX_MESSAGES شد، پیام‌های قدیمی حذف شود
+  if (chatHistory.length > MAX_MESSAGES) {
+    chatHistory.shift(); // حذف اولین پیام (قدیمی‌ترین)
+  }
+
+  // ارسال پیام به همه
+  io.emit('chat', messageData);
+});
+
+
 
   socket.on('adminAction', (data) => {
     if (!socket.isAdmin) return;
