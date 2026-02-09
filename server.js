@@ -85,30 +85,20 @@ server.listen(PORT, () =>
 
 async function fetchMarketData() {
   try {
-    const res = await axios.get(
-      'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
-    );
-
-    const btcPrice = res.data.bitcoin.usd;
-
-    // قیمت طلا تقریبی از API دیگر ساده‌تر
-    const goldRes = await axios.get(
-      'https://api.metals.dev/v1/latest?api_key=demo&base=USD&symbols=XAU'
-    );
-
-    const goldPrice = goldRes.data?.rates?.XAU
-      ? (1 / goldRes.data.rates.XAU).toFixed(2)
-      : "N/A";
+    const btcPrice = 60000;  // تست ثابت
+    const goldPrice = 2000;  // تست ثابت
 
     io.emit('marketData', {
       gold: goldPrice,
       btc: btcPrice
     });
 
+    console.log("Market data sent!");
   } catch (error) {
     console.log("Market API error:", error.message);
   }
 }
+
 
 
 // هر 30 ثانیه
