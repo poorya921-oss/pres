@@ -1,4 +1,7 @@
 // server.js
+const fs = require('fs');
+
+let settings = JSON.parse(fs.readFileSync('./settings.json'));
 const axios = require('axios');
 const express = require('express');
 const http = require('http');
@@ -13,9 +16,9 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // --- CONFIG ---
-let PUBLIC_PASSWORD = '12345678';
-let ADMIN_USERNAME = 'poorya';
-let ADMIN_PASSWORD = '1381@';
+let PUBLIC_PASSWORD = settings.PUBLIC_PASSWORD;
+let ADMIN_USERNAME = settings.ADMIN_USERNAME;
+let ADMIN_PASSWORD = settings.ADMIN_PASSWORD;
 
 let onlineUsers = {};
 let mutedUsers = {}; // username: timestamp
@@ -44,6 +47,7 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('loginError');
     }
+  socket.emit('changeChatColor', settings.chatBgColor);  
 
 // وقتی کاربر تازه وصل شد، رنگ‌ها را بفرست
 socket.emit('changeChatColor', serverSettings.chatBgColor);
@@ -86,12 +90,24 @@ if (data.type === 'changePanelBg') {
     }
 
     if (data.type === 'changePasswords') {
-      if (data.newAdmin) ADMIN_PASSWORD = data.newAdmin;
-      if (data.newPublic) PUBLIC_PASSWORD = data.newPublic;
-    }
+
+  if (data.newAdmin) {
+    settings.ADMIN_PASSWORD = data.newAdmin;
+    ADMIN_PASSWORD = data.newAdmin;
+  }
+
+  if (data.newPublic) {
+    settings.PUBLIC_PASSWORD = data.newPublic;
+    PUBLIC_PASSWORD = data.newPublic;
+  }
+
+  fs.writeFileSync('./settings.json', JSON.stringify(settings, null, 2));
+}
 
     if (data.type === 'changeChatColor') {
-  io.emit('changeChatColor', data.color); // به همه کلاینت‌ها میفرستیم
+  settings.chatBgColor = data.color;
+  fs.writeFileSync('./settings.json', JSON.stringify(settings, null, 2));
+  io.emit('changeChatColor', data.color);
 }
 
   });
