@@ -20,6 +20,13 @@ let ADMIN_PASSWORD = '1381@';
 let onlineUsers = {};
 let mutedUsers = {}; // username: timestamp
 
+// CONFIG اضافی برای ذخیره تنظیمات ادمین
+let serverSettings = {
+  chatBgColor: "#f0f2f5",   // رنگ پیش‌فرض چت
+  adminPanelBg: "#f5f5f5"   // رنگ پنل ادمین
+};
+
+
 io.on('connection', (socket) => {
   socket.on('login', ({ username, password }) => {
     if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
@@ -37,6 +44,12 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('loginError');
     }
+
+// وقتی کاربر تازه وصل شد، رنگ‌ها را بفرست
+socket.emit('changeChatColor', serverSettings.chatBgColor);
+socket.emit('changePanelBg', serverSettings.adminPanelBg);
+
+
   });
 
   socket.on('chat', (msg) => {
@@ -52,6 +65,17 @@ io.on('connection', (socket) => {
       const id = onlineUsers[data.user];
       if (id) io.to(id).disconnectSockets(true);
     }
+
+if (data.type === 'changeChatColor') {
+  serverSettings.chatBgColor = data.color;  // ذخیره رنگ
+  io.emit('changeChatColor', data.color);
+}
+
+if (data.type === 'changePanelBg') {
+  serverSettings.adminPanelBg = data.color;
+  io.emit('changePanelBg', data.color);
+}
+
 
     if (data.type === 'mute') {
       mutedUsers[data.user] = Date.now() + data.minutes * 60000;
