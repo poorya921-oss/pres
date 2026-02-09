@@ -64,22 +64,26 @@ chatHistory.forEach(message => {
 
 
   socket.on('chat', (msg) => {
+  // اگر کاربر لاگین نکرده باشه پیام ارسال نشه
+  if (!socket.username) {
+    socket.emit('chatError', { msg: "You must login first!" });
+    return;
+  }
+
+  // بررسی سکوت کاربر
   const muteUntil = mutedUsers[socket.username];
   if (muteUntil && Date.now() < muteUntil) return;
 
   const messageData = { user: socket.username, msg };
-  
-  // اضافه کردن پیام به تاریخچه
-  chatHistory.push(messageData);
 
-  // اگر تعداد پیام‌ها بیشتر از MAX_MESSAGES شد، پیام‌های قدیمی حذف شود
-  if (chatHistory.length > MAX_MESSAGES) {
-    chatHistory.shift(); // حذف اولین پیام (قدیمی‌ترین)
-  }
+  // ذخیره پیام در آرایه تاریخچه
+  chatHistory.push(messageData);
+  if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
 
   // ارسال پیام به همه
   io.emit('chat', messageData);
 });
+
 
 
 
