@@ -1,7 +1,20 @@
 // server.js
 const fs = require('fs');
 
-let settings = JSON.parse(fs.readFileSync('./settings.json'));
+let settings;
+try {
+  settings = JSON.parse(fs.readFileSync('./settings.json'));
+} catch (err) {
+  console.log("Settings file missing or invalid. Using defaults.");
+  settings = {
+    PUBLIC_PASSWORD: "12345678",
+    ADMIN_USERNAME: "poorya",
+    ADMIN_PASSWORD: "1381@",
+    chatBgColor: "#f0f2f5",
+    adminPanelBg: "#f5f5f5"
+  };
+}
+
 const axios = require('axios');
 const express = require('express');
 const http = require('http');
