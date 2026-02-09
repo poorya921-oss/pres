@@ -100,9 +100,12 @@ chatHistory.forEach(message => {
     if (!socket.isAdmin) return;
 
     if (data.type === 'kick') {
-      const id = onlineUsers[data.user];
-      if (id) io.to(id).disconnectSockets(true);
-    }
+  const userObj = onlineUsers[data.user];
+  if (userObj && userObj.id) {
+    io.to(userObj.id).disconnectSockets(true);
+  }
+}
+
 
     if (data.type === 'mute') {
       mutedUsers[data.user] = Date.now() + data.minutes * 60000;

@@ -137,7 +137,12 @@ socket.on('userIPs', ips => {
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
     }
 
-    function kick() { socket.emit('adminAction', { type:'kick', user: document.getElementById('kickUser').value }); }
+    function kick() {
+  const user = document.getElementById('kickUser').value.trim();
+  if (!user) return alert("Enter a username to kick");
+  socket.emit('adminAction', { type:'kick', user });
+}
+
     function mute() { socket.emit('adminAction', { type:'mute', user: document.getElementById('muteUser').value, minutes: parseInt(document.getElementById('muteMinutes').value)||1 }); }
     function broadcast() { socket.emit('adminAction', { type:'broadcast', msg: document.getElementById('broadcastMsg').value }); }
     function changePasswords() { socket.emit('adminAction', { type:'changePasswords', newAdmin: document.getElementById('newAdminPass').value, newPublic: document.getElementById('newPublicPass').value }); }
