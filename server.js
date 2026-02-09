@@ -1,4 +1,5 @@
 // server.js
+const axios = require('axios');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -78,3 +79,9 @@ io.on('connection', (socket) => {
 });
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+
+// هر 30 ثانیه قیمت آپدیت شود
+setInterval(fetchMarketData, 30000);
+
+// بار اول هم اجرا شود
+fetchMarketData();
