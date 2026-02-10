@@ -79,6 +79,42 @@
   animation: pulse 1.2s infinite;
 }
 
+.admin-btn {
+  display: none; /* فقط برای ادمین نمایش داده میشه */
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+  background: linear-gradient(135deg, #d32f2f, #f44336);
+  box-shadow: 0 4px 10px rgba(211,47,47,0.3);
+  transition: all 0.25s ease;
+}
+
+.admin-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 14px rgba(211,47,47,0.4);
+}
+
+.admin-btn:active {
+  transform: scale(0.95);
+}
+
+.admin-icon {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+}
+
+.admin-btn:hover .admin-icon {
+  transform: rotate(30deg);
+}
+
+
+
 .online-badge:hover {
   animation: shake 0.3s;
 }
@@ -177,7 +213,11 @@ body { margin:0; font-family:sans-serif; display:flex; height:100vh; }
 <div id="header">
   <div id="logo"><span class="icon">💬</span> pres</div>
   <div id="marketBox">BTC: <span id="btcPrice">--</span></div>
-  <button id="adminBtn">Admin</button>
+  <button id="adminBtn" class="admin-btn">
+  <span class="admin-icon">⚙</span>
+  Admin Panel
+</button>
+
 </div>
 
 <div class="online-badge">
