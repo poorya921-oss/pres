@@ -4,6 +4,64 @@
 <meta charset="UTF-8" />
 <title>pres</title>
 <style>
+
+#input {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #ddd;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f0f2f5;
+  padding: 8px;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+#msg {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 15px;
+  font-size: 14px;
+  outline: none;
+}
+
+#msg::placeholder {
+  color: #888;
+}
+
+#msg:focus {
+  outline: none;
+}
+
+.send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: white;
+  background: linear-gradient(135deg, #1e88e5, #42a5f5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.send-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(30,136,229,0.4);
+}
+
+.send-btn:active {
+  transform: scale(0.95);
+}
+
+
   .online-badge {
   display: inline-flex;
   align-items: center;
@@ -78,9 +136,14 @@ body { margin:0; font-family:sans-serif; display:flex; height:100vh; }
 <div id="chat">
   <div id="messages"></div>
   <div id="input">
-    <input id="msg" placeholder="message" />
-    <button onclick="send()">Send</button>
+  <div class="input-wrapper">
+    <input id="msg" placeholder="Type your message..." />
+    <button class="send-btn" onclick="send()">
+      ➤
+    </button>
   </div>
+</div>
+
 </div>
 
 <div id="adminPanel">
@@ -181,6 +244,14 @@ function changeChatColor(color) { socket.emit('adminAction', { type:'changeChatC
 function showIPs() { socket.emit('adminAction', { type:'getIPs' }); }
 
 socket.on('userIPs', ips => alert(ips.map(u=>`${u.username}: ${u.ip}`).join("\n")));
+
+document.getElementById("msg").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    send();
+  }
+});
+
+
 </script>
 </body>
 </html>
