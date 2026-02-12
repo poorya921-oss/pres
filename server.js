@@ -34,6 +34,7 @@ if (fs.existsSync(dataFile)) {
     settings.PUBLIC_PASSWORD = json.publicPassword || settings.PUBLIC_PASSWORD;
     settings.ADMIN_PASSWORD = json.adminPassword || settings.ADMIN_PASSWORD;
     chatHistory = json.chatHistory || [];
+    messages = json.messages || [];
   } catch (e) {
     console.log("Error reading data.json:", e.message);
   }
@@ -44,7 +45,8 @@ function saveData() {
   const toSave = {
     publicPassword: settings.PUBLIC_PASSWORD,
     adminPassword: settings.ADMIN_PASSWORD,
-    chatHistory
+    chatHistory,
+    messages
   };
   fs.writeFileSync(dataFile, JSON.stringify(toSave, null, 2));
 }
@@ -83,27 +85,54 @@ io.on('connection', (socket) => {
 
   // ---------- CHAT ----------
   socket.on("sendMessage", (text) => {
+    if (!socket.username) return;
 
-  if (!socket.username) return;
+    const message = {
+      id: Date.now().toString() + Math.random(),
+      userId: socket.id,
+      username: socket.username,
+      text: text,
+      createdAt: Date.now()
+    };
 
-  const message = {
-    id: Date.now().toString() + Math.random(),
-    userId: socket.id,
-    username: socket.username,
-    text: text,
-    createdAt: Date.now()
-  };
+    messages.push(message);
+    
+    // اضافه کردن به chatHistory برای ذخیره
+    const historyMsg = { user: socket.username, msg: text };
+    chatHistory.push(historyMsg);
+    if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
 
-  messages.push(message);
+    if (messages.length > 100) {
+      messages.shift();
+    }
 
-  if (messages.length > 100) {
-    messages.shift();
-  }
+    saveData();
+    io.emit("newMessage", message);
+  });
 
-  saveData(); // اگر داری
+  // ---------- DELETE MESSAGE ----------
+  socket.on("deleteMessage", (messageId) => {
+    if (!socket.username) return;
 
-  io.emit("newMessage", message);
-});
+    const msgIndex = messages.findIndex(m => m.id === messageId);
+    if (msgIndex === -1) return;
+
+    const msg = messages[msgIndex];
+
+    // اجازه حذف به مالک یا ادمین
+    if (msg.userId !== socket.id && !socket.isAdmin) return;
+
+    messages.splice(msgIndex, 1);
+    
+    // حذف از تاریخچه
+    const historyIndex = chatHistory.findIndex(h => 
+      h.user === msg.username && h.msg === msg.text
+    );
+    if (historyIndex !== -1) chatHistory.splice(historyIndex, 1);
+    
+    saveData();
+    io.emit("messageDeleted", messageId);
+  });
 
   // ---------- ADMIN ACTIONS ----------
   socket.on('adminAction', (data) => {
@@ -154,24 +183,6 @@ io.on('connection', (socket) => {
   });
 
 });
-
-socket.on("deleteMessage", (messageId) => {
-
-  const msgIndex = messages.findIndex(m => m.id === messageId);
-  if (msgIndex === -1) return;
-
-  const msg = messages[msgIndex];
-
-  // فقط صاحب پیام اجازه حذف دارد
-  if (msg.userId !== socket.id) return;
-
-  messages.splice(msgIndex, 1);
-
-  saveData(); // اگر داری
-
-  io.emit("messageDeleted", messageId);
-});
-
 
 // ---------- MARKET DATA ----------
 async function fetchMarketData() {
