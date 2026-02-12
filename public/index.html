@@ -201,16 +201,17 @@
 
 #btcChartBox {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 320px;
-  height: 220px;
+  top: 10px;       /* فاصله از بالای صفحه */
+  right: 10px;     /* فاصله از راست صفحه */
+  width: 250px;    /* عرض باکس */
+  height: 180px;   /* ارتفاع باکس */
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   overflow: hidden;
-  z-index: 10;
+  z-index: 1000;   /* روی همه چیز قرار می‌گیره */
 }
+
 
 
 body { margin:0; font-family:sans-serif; display:flex; height:100vh; }
@@ -447,6 +448,7 @@ window.addEventListener("load", function() {
   });
 });
 </script>
+
 
 </body>
 </html>
