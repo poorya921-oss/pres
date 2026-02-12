@@ -1,4 +1,3 @@
-// server.js
 const fs = require('fs');
 const axios = require('axios');
 const express = require('express');
@@ -21,10 +20,9 @@ let settings = {
   ADMIN_PASSWORD: '1381@',
 };
 
-let messages = [];
-let chatHistory = [];
-let onlineUsers = {}; // { username: { id, ip } }
-let mutedUsers = {};  // { username: timestamp }
+let chatHistory = [];       // پیام‌ها که ذخیره میشن
+let onlineUsers = {};       // { username: { id, ip } }
+let mutedUsers = {};        // { username: timestamp }
 
 // -------- Load saved data --------
 if (fs.existsSync(dataFile)) {
@@ -34,7 +32,6 @@ if (fs.existsSync(dataFile)) {
     settings.PUBLIC_PASSWORD = json.publicPassword || settings.PUBLIC_PASSWORD;
     settings.ADMIN_PASSWORD = json.adminPassword || settings.ADMIN_PASSWORD;
     chatHistory = json.chatHistory || [];
-    messages = json.messages || [];
   } catch (e) {
     console.log("Error reading data.json:", e.message);
   }
@@ -45,8 +42,7 @@ function saveData() {
   const toSave = {
     publicPassword: settings.PUBLIC_PASSWORD,
     adminPassword: settings.ADMIN_PASSWORD,
-    chatHistory,
-    messages
+    chatHistory
   };
   fs.writeFileSync(dataFile, JSON.stringify(toSave, null, 2));
 }
@@ -80,7 +76,7 @@ io.on('connection', (socket) => {
     socket.emit('loginSuccess', { role });
 
     // Send chat history to newly connected user
-    chatHistory.forEach(msg => socket.emit('chat', msg));
+    chatHistory.forEach(msg => socket.emit('newMessage', msg));
   });
 
   // ---------- CHAT ----------
@@ -95,42 +91,29 @@ io.on('connection', (socket) => {
       createdAt: Date.now()
     };
 
-    messages.push(message);
-    
-    // اضافه کردن به chatHistory برای ذخیره
-    const historyMsg = { user: socket.username, msg: text };
-    chatHistory.push(historyMsg);
-    if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
+    chatHistory.push(message);
 
-    if (messages.length > 100) {
-      messages.shift();
+    if (chatHistory.length > MAX_MESSAGES) {
+      chatHistory.shift();
     }
 
     saveData();
+
     io.emit("newMessage", message);
   });
 
   // ---------- DELETE MESSAGE ----------
   socket.on("deleteMessage", (messageId) => {
-    if (!socket.username) return;
-
-    const msgIndex = messages.findIndex(m => m.id === messageId);
+    const msgIndex = chatHistory.findIndex(m => m.id === messageId);
     if (msgIndex === -1) return;
 
-    const msg = messages[msgIndex];
+    const msg = chatHistory[msgIndex];
 
-    // اجازه حذف به مالک یا ادمین
-    if (msg.userId !== socket.id && !socket.isAdmin) return;
+    if (msg.userId !== socket.id) return; // فقط صاحب پیام اجازه حذف دارد
 
-    messages.splice(msgIndex, 1);
-    
-    // حذف از تاریخچه
-    const historyIndex = chatHistory.findIndex(h => 
-      h.user === msg.username && h.msg === msg.text
-    );
-    if (historyIndex !== -1) chatHistory.splice(historyIndex, 1);
-    
+    chatHistory.splice(msgIndex, 1);
     saveData();
+
     io.emit("messageDeleted", messageId);
   });
 
@@ -148,11 +131,17 @@ io.on('connection', (socket) => {
     }
 
     if (data.type === 'broadcast') {
-      const messageData = { user: 'ADMIN', msg: data.msg };
+      const messageData = { 
+        id: Date.now().toString() + Math.random(),
+        userId: socket.id,
+        username: 'ADMIN',
+        text: data.msg,
+        createdAt: Date.now()
+      };
       chatHistory.push(messageData);
       if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
       saveData();
-      io.emit('chat', messageData);
+      io.emit('newMessage', messageData);
     }
 
     if (data.type === 'changePasswords') {
