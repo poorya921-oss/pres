@@ -203,14 +203,15 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  width: 300px;   /* حداقل */
-  height: 200px;  /* حداقل */
+  width: 320px;    /* حداقل عرض */
+  height: 220px;   /* حداقل ارتفاع */
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   overflow: hidden;
-  z-index: 1000;
+  z-index: 100;
 }
+
 
 
 
@@ -428,12 +429,10 @@ socket.on("messageDeleted", (id) => {
 </script>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
-
 <script>
-wwindow.addEventListener("load", function() {
-  new TradingView.widget({
-  container_id: "btcChart",  // این باید div واقعی باشه
-  width: "100%",              // پر کردن والدش
+new TradingView.widget({
+  container_id: "btcChart",
+  width: "100%",
   height: "100%",
   symbol: "BINANCE:BTCUSDT",
   interval: "60",
@@ -448,10 +447,8 @@ wwindow.addEventListener("load", function() {
   save_image: false,
   studies: []
 });
-
-});
-
 </script>
+
 
 
 </body>
