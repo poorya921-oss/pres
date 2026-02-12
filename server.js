@@ -21,6 +21,7 @@ let settings = {
   ADMIN_PASSWORD: '1381@',
 };
 
+let messages = [];
 let chatHistory = [];
 let onlineUsers = {}; // { username: { id, ip } }
 let mutedUsers = {};  // { username: timestamp }
@@ -81,19 +82,28 @@ io.on('connection', (socket) => {
   });
 
   // ---------- CHAT ----------
-  socket.on('chat', (msg) => {
-    if (!socket.username) return; // only logged-in users
-    const muteUntil = mutedUsers[socket.username];
-    if (muteUntil && Date.now() < muteUntil) return;
+  socket.on("sendMessage", (text) => {
 
-    const messageData = { user: socket.username, msg };
-    chatHistory.push(messageData);
-    if (chatHistory.length > MAX_MESSAGES) chatHistory.shift();
+  if (!socket.username) return;
 
-    saveData(); // save message
+  const message = {
+    id: Date.now().toString() + Math.random(),
+    userId: socket.id,
+    username: socket.username,
+    text: text,
+    createdAt: Date.now()
+  };
 
-    io.emit('chat', messageData);
-  });
+  messages.push(message);
+
+  if (messages.length > 100) {
+    messages.shift();
+  }
+
+  saveData(); // اگر داری
+
+  io.emit("newMessage", message);
+});
 
   // ---------- ADMIN ACTIONS ----------
   socket.on('adminAction', (data) => {
@@ -144,6 +154,24 @@ io.on('connection', (socket) => {
   });
 
 });
+
+socket.on("deleteMessage", (messageId) => {
+
+  const msgIndex = messages.findIndex(m => m.id === messageId);
+  if (msgIndex === -1) return;
+
+  const msg = messages[msgIndex];
+
+  // فقط صاحب پیام اجازه حذف دارد
+  if (msg.userId !== socket.id) return;
+
+  messages.splice(msgIndex, 1);
+
+  saveData(); // اگر داری
+
+  io.emit("messageDeleted", messageId);
+});
+
 
 // ---------- MARKET DATA ----------
 async function fetchMarketData() {

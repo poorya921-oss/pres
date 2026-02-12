@@ -113,8 +113,6 @@
   transform: rotate(30deg);
 }
 
-
-
 .online-badge:hover {
   animation: shake 0.3s;
 }
@@ -188,6 +186,18 @@
   color: #4caf50;
 }
 
+.deleteBtn {
+  float: right;
+  cursor: pointer;
+  margin-left: 10px;
+  opacity: 0.6;
+  transition: 0.2s;
+}
+
+.deleteBtn:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
 
 
 body { margin:0; font-family:sans-serif; display:flex; height:100vh; }
@@ -309,14 +319,32 @@ socket.on('users', users => {
 });
 
 
-socket.on('chat', data => {
-  const messageDiv = document.createElement('div');
-  messageDiv.classList.add('message');
-  messageDiv.classList.add(data.user===username?'my-message':'other-message');
-  messageDiv.innerHTML = `<div class="bubble"><strong>${data.user}</strong><br/>${data.msg}</div>`;
-  document.getElementById('messages').appendChild(messageDiv);
-  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+socket.on("newMessage", (data) => {
+
+  const messageDiv = document.createElement("div");
+  messageDiv.classList.add("message");
+  messageDiv.setAttribute("data-id", data.id);
+
+  if (data.userId === socket.id) {
+    messageDiv.classList.add("my-message");
+  } else {
+    messageDiv.classList.add("other-message");
+  }
+
+  messageDiv.innerHTML = `
+    <div class="bubble">
+      <strong>${data.username}</strong>
+      ${data.userId === socket.id ? `<span class="deleteBtn" onclick="deleteMsg('${data.id}')">🗑</span>` : ""}
+      <br/>
+      ${data.text}
+    </div>
+  `;
+
+  document.getElementById("messages").appendChild(messageDiv);
+  document.getElementById("messages").scrollTop =
+    document.getElementById("messages").scrollHeight;
 });
+
 
 socket.on('changeChatColor', color => document.getElementById('chat').style.backgroundColor = color);
 
@@ -366,6 +394,15 @@ document.getElementById("msg").addEventListener("keydown", function(e) {
   if (e.key === "Enter") {
     send();
   }
+});
+
+function deleteMsg(id) {
+  socket.emit("deleteMessage", id);
+}
+
+socket.on("messageDeleted", (id) => {
+  const msg = document.querySelector(`[data-id="${id}"]`);
+  if (msg) msg.remove();
 });
 
 
