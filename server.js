@@ -80,27 +80,26 @@ io.on('connection', (socket) => {
   });
 
   // ---------- CHAT ----------
-  socket.on("sendMessage", (text) => {
-    if (!socket.username) return;
+  socket.on("chat", (text) => {
+  if (!socket.username) return; // فقط کاربرانی که login شدن
 
-    const message = {
-      id: Date.now().toString() + Math.random(),
-      userId: socket.id,
-      username: socket.username,
-      text: text,
-      createdAt: Date.now()
-    };
+  const message = {
+    id: Date.now().toString() + Math.random(),
+    userId: socket.id,
+    username: socket.username,
+    text,
+    createdAt: Date.now()
+  };
 
-    chatHistory.push(message);
+  chatHistory.push(message);
 
-    if (chatHistory.length > MAX_MESSAGES) {
-      chatHistory.shift();
-    }
+  if (chatHistory.length > 100) chatHistory.shift();
 
-    saveData();
+  saveData(); // ذخیره پیام‌ها
 
-    io.emit("newMessage", message);
-  });
+  io.emit("newMessage", message); // همون اسم 'newMessage' که فرانت گوش می‌ده
+});
+
 
   // ---------- DELETE MESSAGE ----------
   socket.on("deleteMessage", (messageId) => {
