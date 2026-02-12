@@ -202,15 +202,16 @@
 #btcChartBox {
   position: absolute;
   top: 10px;
-  left: 10px;       /* سمت چپ میخوای */
-  width: 220px;      /* اندازه کوچک */
-  height: 140px;     /* ارتفاع کم */
+  left: 10px;
+  width: 300px;   /* حداقل */
+  height: 200px;  /* حداقل */
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   overflow: hidden;
   z-index: 1000;
 }
+
 
 
 
@@ -431,22 +432,23 @@ socket.on("messageDeleted", (id) => {
 <script>
 wwindow.addEventListener("load", function() {
   new TradingView.widget({
-    container_id: "btcChart",
-    width: "100%",    // باکس والدو پر می‌کنه
-    height: "100%",
-    symbol: "BINANCE:BTCUSDT",
-    interval: "60",
-    timezone: "Etc/UTC",
-    theme: "light",
-    style: "1",
-    locale: "en",
-    toolbar_bg: "#f1f3f6",
-    enable_publishing: false,
-    hide_top_toolbar: true,
-    hide_legend: true,
-    save_image: false,
-    studies: []
-  });
+  container_id: "btcChart",  // این باید div واقعی باشه
+  width: "100%",              // پر کردن والدش
+  height: "100%",
+  symbol: "BINANCE:BTCUSDT",
+  interval: "60",
+  timezone: "Etc/UTC",
+  theme: "light",
+  style: "1",
+  locale: "en",
+  toolbar_bg: "#f1f3f6",
+  enable_publishing: false,
+  hide_top_toolbar: true,
+  hide_legend: true,
+  save_image: false,
+  studies: []
+});
+
 });
 
 </script>
